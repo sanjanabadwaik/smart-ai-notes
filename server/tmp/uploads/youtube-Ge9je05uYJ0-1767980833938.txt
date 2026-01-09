@@ -1,0 +1,20 @@
+statistics, basic concepts. What is statistics? Let's say you have a lot of
+information such as names, ages, heights, and eye color of different people. If you
+organize and use this data in order to look at the group as a whole, you're
+using statistics. Statistics is a type of math that teaches you how to collect and
+analyze data or information in order to find answers and make decisions. It's
+commonly used by organizations like governments and companies to make predictions
+based on facts. For example, you might be familiar with Netflix. The streaming
+service for watching TV shows and movies, they collect lots of information from
+viewers so that they can suggest other content that they think you might like.
+This makes the Netflix experience feel more personalized. Since Netflix makes
+some of its own content, they also use data to determine if they should produce a
+new movie or show. This is based on predictions about whether it will be
+popular with viewers or not. Statistics is also used in fields like health care,
+economics, and education. Medical researchers use it to study if new medicines are
+effective. Economists study consumer trends, and education experts track information
+about students like graduation rates. While there are different methods for gathering
+and analyzing data, just remember. Statistics helps us to discover its value in order
+to make better decisions. Feel free to check out our other videos or our free tutorial
+on basics statistics to learn more. G-CF Global Creating Opportunities for a
+better life.

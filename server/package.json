@@ -1,0 +1,45 @@
+{
+  "name": "ai-notes",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "lint": "echo \"Add linting if needed\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@google/generative-ai": "^0.24.1",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.2.1",
+    "fluent-ffmpeg": "^2.1.3",
+    "fs-extra": "^11.3.3",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "joi": "^18.0.2",
+    "jsonwebtoken": "^9.0.3",
+    "mammoth": "^1.11.0",
+    "mongoose": "^9.1.0",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "node-fetch": "^3.3.2",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.4.530",
+    "pptx-parser": "^1.1.7-beta.9"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
