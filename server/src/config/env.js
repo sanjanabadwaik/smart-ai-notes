@@ -27,11 +27,21 @@ requiredVars.forEach((key) => {
   }
 });
 
+const defaultClientOrigin = "http://localhost:5173";
+const clientOrigins = (process.env.CLIENT_URL || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const resolvedClientOrigins =
+  clientOrigins.length > 0 ? clientOrigins : [defaultClientOrigin];
+const primaryClientOrigin = resolvedClientOrigins[0];
+
 export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: process.env.PORT || 5000,
   mongoUri: process.env.MONGO_URI || "",
-  clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
+  clientUrl: primaryClientOrigin,
+  clientOrigins: resolvedClientOrigins,
   youtubeCookie: process.env.YOUTUBE_COOKIE || "",
 
   jwt: {
