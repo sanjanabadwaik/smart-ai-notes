@@ -132,10 +132,7 @@ const UploadLecture = () => {
         user: user._id, // Ensure user ID is included
       };
 
-      console.log("Saving note with payload:", payload); // Debug log
-
       const response = await api.post("/notes", payload);
-      console.log("Note saved successfully:", response.data); // Debug log
 
       toast.success("Notes saved successfully! 📝");
     } catch (error) {

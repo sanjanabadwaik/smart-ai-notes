@@ -207,48 +207,6 @@ const Landing = () => {
                   size={18}
                 />
               </Link>
-              <style jsx global>{`
-                @keyframes bounce-x {
-                  0%, 100% { transform: translateX(0); }
-                  50% { transform: translateX(4px); }
-                }
-                @keyframes scaleUpDown {
-                  0%, 100% { 
-                    transform: scale(1);
-                    opacity: 0.8;
-                  }
-                  50% { 
-                    transform: scale(1.08); 
-                    opacity: 1;
-                  }
-                }
-                .animate-bounce-x {
-                  animation: bounce-x 2s ease-in-out infinite;
-                }
-                @keyframes statPulse1 {
-                  0%, 100% { transform: scale(1); opacity: 0.8; }
-                  16.66%, 33.33% { transform: scale(1.08); opacity: 1; }
-                  33.34%, 100% { transform: scale(1); opacity: 0.8; }
-                }
-                @keyframes statPulse2 {
-                  0%, 33.33% { transform: scale(1); opacity: 0.8; }
-                  50%, 66.66% { transform: scale(1.08); opacity: 1; }
-                  66.67%, 100% { transform: scale(1); opacity: 0.8; }
-                }
-                @keyframes statPulse3 {
-                  0%, 66.66% { transform: scale(1); opacity: 0.8; }
-                  83.33%, 100% { transform: scale(1.08); opacity: 1; }
-                }
-                .stat-animation-1 {
-                  animation: statPulse1 6s ease-in-out infinite;
-                }
-                .stat-animation-2 {
-                  animation: statPulse2 6s ease-in-out infinite;
-                }
-                .stat-animation-3 {
-                  animation: statPulse3 6s ease-in-out infinite;
-                }
-              `}</style>
               <Link
                 to={isAuthenticated ? "/upload" : "#"}
                 onClick={handleUploadClick}
