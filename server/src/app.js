@@ -56,6 +56,10 @@ app.use("/api/community", communityRoutes);
 app.get("/health", (_req, res) => {
   res.json({ success: true, message: "API healthy", env: env.nodeEnv });
 });
+app.get("/", (req, res) => {
+  res.send("Smart AI Notes backend is running 🚀");
+});
+
 
 app.use(notFoundHandler); 
 app.use(errorHandler);
