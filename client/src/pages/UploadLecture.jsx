@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useContext } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   CheckCircle2,
@@ -8,8 +8,7 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
-import SectionTitle from "../components/SectionTitle";
-import IconBadge from "../components/IconBadge";
+import SectionTitle from "../components/SectionTitle"; 
 import { languages, summaryTypes, uploadOptions } from "../data/mockData";
 import { toast } from "react-hot-toast";
 import api from "../lib/api";

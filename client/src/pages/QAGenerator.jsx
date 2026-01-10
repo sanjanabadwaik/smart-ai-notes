@@ -96,7 +96,7 @@ const QAGenerator = () => {
   return (
     <div className="space-y-10 bg-white text-slate-800">
       <SectionTitle
-        eyebrow="Auto Q&A"
+        eyebrow="Automated Question Generation"
         title="Generate exam-ready questions"
         description="Convert notes into MCQs, short & long answers."
       />

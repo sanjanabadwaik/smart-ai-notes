@@ -1,14 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import {
-  ArrowUpRight,
-  Clock,
-  Upload,
-  Workflow,
-  Book,
-  FileText,
-  Edit2,
-  Users,
-} from "lucide-react";
+import { ArrowUpRight, Clock, Upload } from "lucide-react";
 import {
   featureCards,
   progressStats,
@@ -104,14 +95,6 @@ const Dashboard = () => {
     navigate(`/upload?source=${optionId}`, { state: { sourceType: optionId } });
   };
 
-  // Map feature names to icon names
-  const featureIcons = {
-    "Lecture Summarizer": "book",
-    "Slide to Notes": "slides",
-    "Auto Q&A Generator": "qa",
-    "Community Notes Sharing": "community"
-  };
-
   return (
     <div className="space-y-8">
       {/* Welcome Panel */}
@@ -132,7 +115,7 @@ const Dashboard = () => {
 
             <p className="text-gray-700">
               Resume unfinished summaries, upload new lectures, or jump straight
-              into Q&A mode.
+              into Automated Question Generation mode.
             </p>
 
             <div className="flex flex-wrap gap-4">
@@ -147,7 +130,7 @@ const Dashboard = () => {
                 to="/qa"
                 className="inline-flex items-center gap-2 rounded-full border border-indigo-600 px-5 py-3 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 transition"
               >
-                Generate Q&A
+               Automated Question Generation
                 <ArrowUpRight size={16} />
               </Link>
             </div>
@@ -278,14 +261,14 @@ const Dashboard = () => {
         />
 
         <div className="mt-6 grid gap-6 md:grid-cols-2">
-          {featureCards.map((card, idx) => {
-            const Icon = featureIcons[card.title] || Book;
+          {featureCards.map((card) => {
+            const iconKey = card.icon || "spark";
             return (
               <div
                 key={card.title}
                 className="flex items-start gap-4 rounded-2xl p-5 shadow hover:shadow-lg hover:-translate-y-1 transition bg-gray-50"
               >
-                <IconBadge icon={Icon} />
+                <IconBadge icon={iconKey} />
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900">{card.title}</h3>
                   <p className="mt-2 text-sm text-gray-700">{card.description}</p>

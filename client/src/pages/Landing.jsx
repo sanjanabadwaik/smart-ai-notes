@@ -5,9 +5,6 @@ import {
   ArrowRight,
   CheckCircle2,
   CloudUpload,
-  PenSquare,
-  Shield, 
-  TimerReset,
   Users,
   FileText,
   FileStack,
@@ -16,9 +13,7 @@ import {
   Lightbulb,
   BookOpenText,
   GraduationCap,
-  BarChart2,
   Layers,
-  BookMarked,
   Upload,
   Edit3,
   Share2,
@@ -28,11 +23,8 @@ import {
   LogIn,
   UserPlus,
   Menu,
-  RefreshCw,
 } from "lucide-react";
-import SectionTitle from "../components/SectionTitle";
-import IconBadge from "../components/IconBadge";
-import { featureCards } from "../data/mockData";
+import SectionTitle from "../components/SectionTitle"; 
 
 const Landing = () => {
   const { isAuthenticated } = useContext(AuthContext);

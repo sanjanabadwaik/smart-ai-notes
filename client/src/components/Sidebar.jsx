@@ -85,7 +85,9 @@ const Sidebar = ({ items = [] }) => {
                 </span>
 
                 {/* Label */}
-                <span className="truncate">{item.label}</span>
+                <span className="flex-1 text-left leading-tight whitespace-normal">
+                  {item.label}
+                </span>
               </>
             )}
           </NavLink>

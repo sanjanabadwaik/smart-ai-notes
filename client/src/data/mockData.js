@@ -1,8 +1,8 @@
 export const navItems = [
   { id: "dashboard", label: "Dashboard", icon: "grid" },
-  { id: "upload", label: "Upload Lecture", icon: "upload" },
-  { id: "slides", label: "Slide to Notes", icon: "slides" },
-  { id: "qa", label: "Q&A Generator", icon: "qa" },
+  { id: "upload", label: "Upload lecture", icon: "upload" },
+  { id: "slides", label: "Slide to Summary (PDF/PPT)", icon: "slides" },
+  { id: "qa", label: "Automated Question Generation", icon: "qa" },
   { id: "community", label: "Community Notes", icon: "community" },
   { id: "my-notes", label: "My Notes", icon: "folder" },
   { id: "settings", label: "Settings", icon: "settings" },
@@ -10,30 +10,31 @@ export const navItems = [
 
 export const featureCards = [
   {
-    title: "Lecture Summarizer",
+    title: "Document to Smart Notes",
     description:
-      "Upload full-length lectures and receive concise, structured study notes in seconds.",
+      "Upload full-length documents and receive concise, structured study notes in seconds.",
     icon: "spark",
   },
   {
-    title: "Slide to Notes",
+    title: "Slide to Summary (PDF/PPT)",
     description:
       "Transform bulky slide decks into streamlined, human-friendly notes with citations.",
     icon: "slides",
   },
   {
-    title: "Auto Q&A Generator",
+    title: "Automated Question Generation",
     description:
       "Create MCQs, short answers, and long-form questions based on any set of notes.",
     icon: "qa",
   },
   {
-    title: "Community Notes Sharing",
+    title: "Community Knowledge Sharing",
     description:
       "Publish your best summaries, collaborate with peers, and crowdsource clarity.",
     icon: "community",
   },
 ];
+
 
 export const recentSummaries = [
   {
