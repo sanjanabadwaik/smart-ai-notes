@@ -41,11 +41,9 @@ const Sidebar = ({ items = [] }) => {
 
         <div>
           <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400">
-            Smart Genius
+            NOtes Genius
           </p>
-          <h2 className="text-lg font-semibold text-gray-900">
-            Lecture Lab
-          </h2>
+         
         </div>
       </div>
 

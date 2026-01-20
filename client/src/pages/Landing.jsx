@@ -58,11 +58,11 @@ const Landing = () => {
               </span>
               <div className="text-left">
                 <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
-                  Smart Notes
+                  NoteGenius
                 </p>
-                <h1 className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-2xl font-bold text-transparent">
+                {/* <h1 className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-2xl font-bold text-transparent">
                   AI Lecture Lab
-                </h1>
+                </h1> */}
               </div>
             </Link>
 
