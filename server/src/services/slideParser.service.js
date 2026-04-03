@@ -1,4 +1,5 @@
 import fs from "fs";
+import unzipper from "unzipper";
 import { gemini, resolveModelName } from "../config/gemini.js";
 import { env } from "../config/env.js";
 import { removeFileSafe } from "../utils/file.js";
@@ -9,14 +10,6 @@ const loadPdfParser = () => {
     pdfParserPromise = import("pdf-parse").then((mod) => mod.default || mod);
   }
   return pdfParserPromise;
-};
-
-let pptxParserPromise;
-const loadPptxParser = () => {
-  if (!pptxParserPromise) {
-    pptxParserPromise = import("pptx-parser").then((mod) => mod.default || mod);
-  }
-  return pptxParserPromise;
 };
 
 const readFileBuffer = (filePath) =>
@@ -32,14 +25,42 @@ const extractPdfText = async (filePath) => {
 };
 
 const extractPptText = async (filePath) => {
-  const { parse } = await loadPptxParser();
-  const presentation = await parse(filePath);
-  return presentation.slides
-    .map(
-      (slide, index) =>
-        `Slide ${index + 1}:\n${slide.texts?.join("\n") || ""}`
-    )
-    .join("\n\n");
+  const directory = await unzipper.Open.file(filePath);
+  const slideEntries = directory.files
+    .filter((entry) => /^ppt\/slides\/slide\d+\.xml$/i.test(entry.path))
+    .sort((a, b) => {
+      const aNum = Number(a.path.match(/slide(\d+)\.xml/i)?.[1] || 0);
+      const bNum = Number(b.path.match(/slide(\d+)\.xml/i)?.[1] || 0);
+      return aNum - bNum;
+    });
+
+  const texts = [];
+  for (const entry of slideEntries) {
+    const xml = (await entry.buffer()).toString("utf-8");
+    const slideNumber = Number(entry.path.match(/slide(\d+)\.xml/i)?.[1] || 0);
+    const parts = [];
+
+    const textRegex = /<a:t>([\s\S]*?)<\/a:t>/gi;
+    let match;
+    while ((match = textRegex.exec(xml))) {
+      const raw = match[1] || "";
+      const decoded = raw
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .trim();
+
+      if (decoded) parts.push(decoded);
+    }
+
+    if (parts.length) {
+      texts.push(`Slide ${slideNumber || texts.length + 1}:\n${parts.join("\n")}`);
+    }
+  }
+
+  return texts.join("\n\n");
 };
 
 export const convertSlidesToNotes = async ({
@@ -99,6 +120,43 @@ Respond ONLY in valid JSON.
     }
 
     return parsed;
+  } catch (err) {
+    // Graceful fallback for quota/network errors: return mock structured notes
+    if (
+      err?.status === 429 ||
+      err?.message?.includes("quota") ||
+      err?.message?.includes("GoogleGenerativeAIFetchError")
+    ) {
+      console.warn("Gemini quota exceeded; returning mock structured notes for local testing");
+      return {
+        overview: "Mock overview for local testing (Gemini quota exceeded).",
+        sections: [
+          {
+            title: "Mock Section 1",
+            bullets: [
+              "Extracted point from slide 1",
+              "Extracted point from slide 2",
+              "Extracted point from slide 3",
+            ],
+          },
+          {
+            title: "Mock Section 2",
+            bullets: [
+              "Key concept from later slides",
+              "Supporting detail",
+              "Example or illustration",
+            ],
+          },
+        ],
+        takeaways: [
+          "Main takeaway 1",
+          "Main takeaway 2",
+          "Main takeaway 3",
+        ],
+      };
+    }
+    // Re-throw other unexpected errors
+    throw err;
   } finally {
     await removeFileSafe(filePath);
   }

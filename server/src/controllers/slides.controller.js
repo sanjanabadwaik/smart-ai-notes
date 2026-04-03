@@ -18,18 +18,29 @@ export const convertSlides = asyncHandler(async (req, res) => {
   const renderedContent = [
     structuredNotes.overview || "",
     ...(structuredNotes.sections || []).map(
-      (section) => `## ${section.title}\n${section.bullets?.map((b) => `- ${b}`).join("\n")}`
+      (section) =>
+        `## ${section.title}\n${(section.bullets || []).map((b) => `- ${b}`).join("\n")}`
     ),
     structuredNotes.takeaways ? `### Takeaways\n${structuredNotes.takeaways.join("\n")}` : "",
   ]
     .filter(Boolean)
     .join("\n\n");
 
+  const keyPoints = Array.isArray(structuredNotes.takeaways)
+    ? structuredNotes.takeaways
+    : [];
+
+  const highlights = Array.isArray(structuredNotes.sections)
+    ? structuredNotes.sections.flatMap((section) =>
+        Array.isArray(section?.bullets) ? section.bullets.slice(0, 1) : []
+      )
+    : [];
+
   const note = await Note.create({
     title,
     content: renderedContent,
-    keyPoints: structuredNotes.takeaways || [],
-    highlights: structuredNotes.sections?.flatMap((s) => s.bullets.slice(0, 1)) || [],
+    keyPoints,
+    highlights,
     sourceType: "slides",
     summaryType,
     language,

@@ -8,15 +8,27 @@ import {
   Check,
 } from "lucide-react";
 import SectionTitle from "../components/SectionTitle";
+import api from "../lib/api";
+import ReactMarkdown from "react-markdown";
+import jsPDF from "jspdf";
+import { languages } from "../data/mockData";
+import { toast } from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 const SlideToNotes = () => {
   const fileInputRef = useRef(null);
+  const { user } = useAuth();
 
   const [slides, setSlides] = useState([]);
   const [selectedSlide, setSelectedSlide] = useState(null);
   const [isConverting, setIsConverting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [summaryType, setSummaryType] = useState("bullet");
+  const [language, setLanguage] = useState("English");
+  const [converted, setConverted] = useState(null);
 
   const [conversionModes, setConversionModes] = useState([
     {
@@ -84,8 +96,10 @@ const SlideToNotes = () => {
 
       setSlides((prev) => [...prev, ...processed]);
       if (!selectedSlide) setSelectedSlide(processed[0]);
+      toast.success("Slides uploaded successfully");
     } catch {
       setError("Failed to process files. Try again.");
+      toast.error("Failed to process files. Try again.");
     } finally {
       setIsUploading(false);
       event.target.value = "";
@@ -94,27 +108,61 @@ const SlideToNotes = () => {
 
   /* ---------------- Convert ---------------- */
   const handleConvert = async () => {
-    if (!slides.length) {
-      setError("Upload slides first.");
+    if (!selectedSlide?.file) {
+      setError("Select a slide deck to convert.");
       return;
     }
 
     setIsConverting(true);
     setError("");
 
-    setTimeout(() => {
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedSlide.file);
+      formData.append("summaryType", summaryType);
+      formData.append("language", language);
+      formData.append(
+        "title",
+        selectedSlide.title || "Slides Conversion"
+      );
+
+      const { data } = await api.post("/slides/convert", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const payload = data?.data;
+      if (!payload?.note && !payload?.structuredNotes) {
+        throw new Error("Invalid response from server");
+      }
+
+      setConverted({
+        note: payload.note,
+        structuredNotes: payload.structuredNotes,
+      });
+      toast.success("Slides converted successfully ✨");
+      // Scroll to results section
+      setTimeout(() => {
+        document.getElementById("slides-results")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    } catch (err) {
+      setError(
+        err?.response?.data?.message || err?.message || "Conversion failed"
+      );
+      toast.error(
+        err?.response?.data?.message || err?.message || "Conversion failed"
+      );
+    } finally {
       setIsConverting(false);
-      console.log("Conversion complete");
-    }, 2000);
+    }
   };
 
   /* ---------------- Toggles ---------------- */
   const toggleConversionMode = (id) => {
-    setConversionModes((prev) =>
-      prev.map((m) =>
-        m.id === id ? { ...m, active: !m.active } : m
-      )
-    );
+    setConversionModes((prev) => prev.map((m) => ({ ...m, active: m.id === id })));
+
+    if (id === "outline") setSummaryType("bullet");
+    if (id === "narrative") setSummaryType("detailed");
+    if (id === "flashcard") setSummaryType("short");
   };
 
   const toggleOutputFormat = (id) => {
@@ -125,13 +173,76 @@ const SlideToNotes = () => {
     );
   };
 
+  const handleDownloadPdf = () => {
+    if (!converted?.note) return;
+    const pdf = new jsPDF();
+    pdf.setFontSize(18);
+    pdf.text(converted.note.title || "Slides Conversion", 10, 20);
+
+    const content = (converted.note.content || "").replace(/```json|```/g, "");
+    const lines = pdf.splitTextToSize(content, 180);
+    pdf.setFontSize(12);
+    pdf.text(lines, 10, 35);
+    pdf.save(`${converted.note.title || "slides"}.pdf`);
+  };
+
+  const handleSaveNotes = async () => {
+    if (!converted?.note) return;
+    if (!user) {
+      toast.error("You must be logged in to save notes");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const payload = {
+        title: converted.note.title,
+        content: converted.note.content,
+        keyPoints: Array.isArray(converted.structuredNotes?.takeaways)
+          ? converted.structuredNotes.takeaways
+          : [],
+        highlights: Array.isArray(converted.structuredNotes?.sections)
+          ? converted.structuredNotes.sections.flatMap((section) =>
+              Array.isArray(section?.bullets) ? section.bullets.slice(0, 1) : []
+            )
+          : [],
+        sourceType: "slides",
+        summaryType,
+        language,
+        user: user._id,
+      };
+
+      await api.post("/notes", payload);
+      toast.success("Notes saved successfully! 📝");
+    } catch (error) {
+      console.error("Error saving notes:", error);
+      toast.error(error?.response?.data?.message || "Failed to save notes");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDownloadMarkdown = () => {
+    if (!converted?.note) return;
+    const blob = new Blob([converted.note.content || ""], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${converted.note.title || "slides"}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   /* ---------------- Cleanup ---------------- */
   useEffect(() => {
     return () => {
       slides.forEach((s) => s.preview && URL.revokeObjectURL(s.preview));
     };
   }, [slides]);
-
   /* ---------------- UI ---------------- */
   return (
     <div className="space-y-8 bg-white text-slate-800">
@@ -250,6 +361,7 @@ const SlideToNotes = () => {
                 </div>
               </div>
             </div>
+            
           )}
         </div>
 
@@ -258,6 +370,23 @@ const SlideToNotes = () => {
           <p className="text-xs uppercase tracking-widest text-slate-500">
             Conversion options
           </p>
+
+          <div>
+            <p className="text-xs uppercase tracking-widest text-slate-500">
+              Language
+            </p>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-2 text-sm"
+            >
+              {languages.map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {conversionModes.map((mode) => (
             <label
@@ -269,7 +398,8 @@ const SlideToNotes = () => {
               }`}
             >
               <input
-                type="checkbox"
+                type="radio"
+                name="conversionMode"
                 checked={mode.active}
                 onChange={() => toggleConversionMode(mode.id)}
                 className="accent-indigo-600"
@@ -314,8 +444,94 @@ const SlideToNotes = () => {
               ))}
             </div>
           </div>
+
+          {converted?.note && (
+            <div className="space-y-3 rounded-2xl border border-slate-200 p-5">
+              <p className="text-xs uppercase tracking-widest text-slate-500">
+                Export
+              </p>
+              <div className="grid gap-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={!outputFormats.find((f) => f.id === "pdf")?.selected}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                >
+                  Download PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadMarkdown}
+                  disabled={!outputFormats.find((f) => f.id === "markdown")?.selected}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                >
+                  Download Markdown
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {converted?.note && (
+        <section id="slides-results" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <SectionTitle
+            eyebrow="Results"
+            title={converted.note.title || "Generated notes"}
+            description="AI-generated notes from your slide deck."
+          />
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <div className="prose max-w-none">
+                <ReactMarkdown>{converted.note.content || ""}</ReactMarkdown>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <p className="text-xs uppercase tracking-widest text-slate-500">
+                Structured output
+              </p>
+
+              <div className="mt-4 space-y-4 text-sm text-slate-700">
+                {converted.structuredNotes?.overview && (
+                  <div>
+                    <p className="font-semibold">Overview</p>
+                    <p className="mt-1 text-slate-600">
+                      {converted.structuredNotes.overview}
+                    </p>
+                  </div>
+                )}
+
+                {Array.isArray(converted.structuredNotes?.takeaways) &&
+                  converted.structuredNotes.takeaways.length > 0 && (
+                    <div>
+                      <p className="font-semibold">Takeaways</p>
+                      <ul className="mt-2 space-y-1 text-slate-600">
+                        {converted.structuredNotes.takeaways.map((t, idx) => (
+                          <li key={idx} className="flex gap-2">
+                            <span className="mt-1 size-1.5 rounded-full bg-indigo-500" />
+                            {t}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+              </div>
+
+              <div className="mt-6">
+                <button
+                  onClick={handleSaveNotes}
+                  disabled={isSaving}
+                  className="w-full rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+                >
+                  {isSaving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 };
