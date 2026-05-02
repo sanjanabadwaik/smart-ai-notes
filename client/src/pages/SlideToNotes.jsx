@@ -15,6 +15,148 @@ import { languages } from "../data/mockData";
 import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 
+const normalizeText = (value) => {
+  if (value == null) return "";
+  return String(value).replace(/\s+/g, " ").trim();
+};
+
+const structuredNotesToOutlineMarkdown = (structuredNotes, title) => {
+  const deckTitle = normalizeText(title) || "Slides";
+  const overview = normalizeText(structuredNotes?.overview);
+  const sections = Array.isArray(structuredNotes?.sections)
+    ? structuredNotes.sections
+    : [];
+  const takeaways = Array.isArray(structuredNotes?.takeaways)
+    ? structuredNotes.takeaways
+    : [];
+
+  const sectionBlocks = sections
+    .map((s) => {
+      const sectionTitle = normalizeText(s?.title) || "Untitled";
+      const bullets = Array.isArray(s?.bullets) ? s.bullets : [];
+      const bulletLines = bullets
+        .map((b) => normalizeText(b))
+        .filter(Boolean)
+        .map((b) => `  - ${b}`)
+        .join("\n");
+
+      return `- ${sectionTitle}${bulletLines ? `\n${bulletLines}` : ""}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  const takeawayBlock = takeaways
+    .map((t) => normalizeText(t))
+    .filter(Boolean)
+    .map((t) => `- ${t}`)
+    .join("\n");
+
+  return [
+    `# ${deckTitle} — Outline`,
+    overview ? `## Overview\n${overview}` : "",
+    sections.length ? `## Outline\n${sectionBlocks}` : "",
+    takeaways.length ? `## Takeaways\n${takeawayBlock}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+};
+
+const structuredNotesToNarrativeMarkdown = (structuredNotes, title) => {
+  const deckTitle = normalizeText(title) || "Slides";
+  const overview = normalizeText(structuredNotes?.overview);
+  const sections = Array.isArray(structuredNotes?.sections)
+    ? structuredNotes.sections
+    : [];
+  const takeaways = Array.isArray(structuredNotes?.takeaways)
+    ? structuredNotes.takeaways
+    : [];
+
+  const sectionBlocks = sections
+    .map((s) => {
+      const sectionTitle = normalizeText(s?.title) || "Untitled";
+      const bullets = Array.isArray(s?.bullets) ? s.bullets : [];
+      const sentenceParts = bullets
+        .map((b) => normalizeText(b))
+        .filter(Boolean)
+        .map((b) => (/[.!?]$/.test(b) ? b : `${b}.`));
+
+      const paragraph = sentenceParts.join(" ");
+      if (!paragraph) return "";
+      return `## ${sectionTitle}\n\n${paragraph}`;
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
+  const takeawayParagraph = takeaways
+    .map((t) => normalizeText(t))
+    .filter(Boolean)
+    .map((t) => (/[.!?]$/.test(t) ? t : `${t}.`))
+    .join(" ");
+
+  return [
+    `# ${deckTitle} — Narrative`,
+    overview ? `## Overview\n\n${overview}` : "",
+    sectionBlocks,
+    takeawayParagraph ? `## Takeaways\n\n${takeawayParagraph}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+};
+
+const structuredNotesToFlashcards = (structuredNotes, title) => {
+  const deckTitle = normalizeText(title) || "Slides";
+  const sections = Array.isArray(structuredNotes?.sections)
+    ? structuredNotes.sections
+    : [];
+  const takeaways = Array.isArray(structuredNotes?.takeaways)
+    ? structuredNotes.takeaways
+    : [];
+
+  const cards = [];
+
+  sections.forEach((s) => {
+    const sectionTitle = normalizeText(s?.title) || "Untitled";
+    const bullets = Array.isArray(s?.bullets) ? s.bullets : [];
+    bullets
+      .map((b) => normalizeText(b))
+      .filter(Boolean)
+      .forEach((b) => {
+        cards.push({
+          id: `${sectionTitle}-${b}`,
+          question: `What should you remember about “${sectionTitle}”?`,
+          answer: b,
+          tag: sectionTitle,
+        });
+      });
+  });
+
+  takeaways
+    .map((t) => normalizeText(t))
+    .filter(Boolean)
+    .forEach((t) => {
+      cards.push({
+        id: `takeaway-${t}`,
+        question: "What is a key takeaway from this deck?",
+        answer: t,
+        tag: "Takeaway",
+      });
+    });
+
+  const markdown = [
+    `# ${deckTitle} — Flashcards`,
+    cards
+      .map(
+        (c, idx) =>
+          `## Q${idx + 1}. ${c.question}\n\n**A:** ${c.answer}${c.tag ? `\n\n_Tag: ${c.tag}_` : ""}`
+      )
+      .join("\n\n"),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return { cards, markdown };
+};
+
 const SlideToNotes = () => {
   const fileInputRef = useRef(null);
   const { user } = useAuth();
@@ -174,20 +316,23 @@ const SlideToNotes = () => {
   };
 
   const handleDownloadPdf = () => {
-    if (!converted?.note) return;
+    if (!convertedForUi?.renderedContent) return;
     const pdf = new jsPDF();
     pdf.setFontSize(18);
-    pdf.text(converted.note.title || "Slides Conversion", 10, 20);
+    pdf.text(convertedForUi?.note?.title || "Slides Conversion", 10, 20);
 
-    const content = (converted.note.content || "").replace(/```json|```/g, "");
+    const content = (convertedForUi?.renderedContent || "").replace(
+      /```json|```/g,
+      ""
+    );
     const lines = pdf.splitTextToSize(content, 180);
     pdf.setFontSize(12);
     pdf.text(lines, 10, 35);
-    pdf.save(`${converted.note.title || "slides"}.pdf`);
+    pdf.save(`${convertedForUi?.note?.title || "slides"}.pdf`);
   };
 
   const handleSaveNotes = async () => {
-    if (!converted?.note) return;
+    if (!convertedForUi?.renderedContent) return;
     if (!user) {
       toast.error("You must be logged in to save notes");
       return;
@@ -196,13 +341,13 @@ const SlideToNotes = () => {
     try {
       setIsSaving(true);
       const payload = {
-        title: converted.note.title,
-        content: converted.note.content,
-        keyPoints: Array.isArray(converted.structuredNotes?.takeaways)
-          ? converted.structuredNotes.takeaways
+        title: convertedForUi?.note?.title,
+        content: convertedForUi.renderedContent,
+        keyPoints: Array.isArray(convertedForUi.structuredNotes?.takeaways)
+          ? convertedForUi.structuredNotes.takeaways
           : [],
-        highlights: Array.isArray(converted.structuredNotes?.sections)
-          ? converted.structuredNotes.sections.flatMap((section) =>
+        highlights: Array.isArray(convertedForUi.structuredNotes?.sections)
+          ? convertedForUi.structuredNotes.sections.flatMap((section) =>
               Array.isArray(section?.bullets) ? section.bullets.slice(0, 1) : []
             )
           : [],
@@ -223,14 +368,14 @@ const SlideToNotes = () => {
   };
 
   const handleDownloadMarkdown = () => {
-    if (!converted?.note) return;
-    const blob = new Blob([converted.note.content || ""], {
+    if (!convertedForUi?.renderedContent) return;
+    const blob = new Blob([convertedForUi.renderedContent || ""], {
       type: "text/markdown;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${converted.note.title || "slides"}.md`;
+    a.download = `${convertedForUi?.note?.title || "slides"}.md`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -244,6 +389,39 @@ const SlideToNotes = () => {
     };
   }, [slides]);
   /* ---------------- UI ---------------- */
+  const activeMode = conversionModes.find((m) => m.active)?.id || "outline";
+  const rendered = (() => {
+    if (!converted?.structuredNotes && !converted?.note) return null;
+    const title = converted?.note?.title || selectedSlide?.title || "Slides Conversion";
+    const structuredNotes = converted?.structuredNotes;
+
+    if (activeMode === "narrative") {
+      return {
+        renderedContent: structuredNotesToNarrativeMarkdown(structuredNotes, title),
+      };
+    }
+
+    if (activeMode === "flashcard") {
+      const flash = structuredNotesToFlashcards(structuredNotes, title);
+      return {
+        renderedContent: flash.markdown,
+        flashcards: flash.cards,
+      };
+    }
+
+    return {
+      renderedContent: structuredNotesToOutlineMarkdown(structuredNotes, title),
+    };
+  })();
+
+  const convertedForUi = converted
+    ? {
+        ...converted,
+        renderedContent: rendered?.renderedContent || converted?.note?.content || "",
+        flashcards: rendered?.flashcards,
+      }
+    : null;
+
   return (
     <div className="space-y-8 bg-white text-slate-800">
       <SectionTitle
@@ -445,7 +623,7 @@ const SlideToNotes = () => {
             </div>
           </div>
 
-          {converted?.note && (
+          {convertedForUi?.renderedContent && (
             <div className="space-y-3 rounded-2xl border border-slate-200 p-5">
               <p className="text-xs uppercase tracking-widest text-slate-500">
                 Export
@@ -473,18 +651,18 @@ const SlideToNotes = () => {
         </div>
       </div>
 
-      {converted?.note && (
+      {convertedForUi?.renderedContent && (
         <section id="slides-results" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <SectionTitle
             eyebrow="Results"
-            title={converted.note.title || "Generated notes"}
+            title={convertedForUi?.note?.title || "Generated notes"}
             description="AI-generated notes from your slide deck."
           />
 
           <div className="mt-6 grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-6">
               <div className="prose max-w-none">
-                <ReactMarkdown>{converted.note.content || ""}</ReactMarkdown>
+                <ReactMarkdown>{convertedForUi.renderedContent || ""}</ReactMarkdown>
               </div>
             </div>
 
@@ -494,21 +672,42 @@ const SlideToNotes = () => {
               </p>
 
               <div className="mt-4 space-y-4 text-sm text-slate-700">
-                {converted.structuredNotes?.overview && (
+                {activeMode === "flashcard" && Array.isArray(convertedForUi.flashcards) && convertedForUi.flashcards.length > 0 && (
+                  <div>
+                    <p className="font-semibold">Flashcards</p>
+                    <div className="mt-3 grid gap-3">
+                      {convertedForUi.flashcards.slice(0, 6).map((c) => (
+                        <div key={c.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs uppercase tracking-widest text-slate-500">Q</p>
+                          <p className="mt-1 font-semibold text-slate-800">{c.question}</p>
+                          <p className="mt-2 text-xs uppercase tracking-widest text-slate-500">A</p>
+                          <p className="mt-1 text-slate-700">{c.answer}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {convertedForUi.flashcards.length > 6 && (
+                      <p className="mt-3 text-xs text-slate-500">
+                        Showing 6 of {convertedForUi.flashcards.length} flashcards. Download Markdown for the full set.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {convertedForUi.structuredNotes?.overview && (
                   <div>
                     <p className="font-semibold">Overview</p>
                     <p className="mt-1 text-slate-600">
-                      {converted.structuredNotes.overview}
+                      {convertedForUi.structuredNotes.overview}
                     </p>
                   </div>
                 )}
 
-                {Array.isArray(converted.structuredNotes?.takeaways) &&
-                  converted.structuredNotes.takeaways.length > 0 && (
+                {Array.isArray(convertedForUi.structuredNotes?.takeaways) &&
+                  convertedForUi.structuredNotes.takeaways.length > 0 && (
                     <div>
                       <p className="font-semibold">Takeaways</p>
                       <ul className="mt-2 space-y-1 text-slate-600">
-                        {converted.structuredNotes.takeaways.map((t, idx) => (
+                        {convertedForUi.structuredNotes.takeaways.map((t, idx) => (
                           <li key={idx} className="flex gap-2">
                             <span className="mt-1 size-1.5 rounded-full bg-indigo-500" />
                             {t}
