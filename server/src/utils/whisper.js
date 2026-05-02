@@ -1,9 +1,10 @@
+
 import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 
-const PYTHON_PATH = "C:\\Program Files\\Python313\\python.exe"; // 🔥 IMPORTANT (Windows)
-const WHISPER_MODEL = "tiny"; // change to "base" after verified
+const PYTHON_PATH = "python"; // ✅ FIXED (use system Python)
+const WHISPER_MODEL = "tiny"; // you can change to "base"
 const WHISPER_TIMEOUT = 15 * 60 * 1000; // 15 minutes
 
 export const transcribeWithWhisper = (audioPath) =>
@@ -18,7 +19,7 @@ export const transcribeWithWhisper = (audioPath) =>
       PYTHON_PATH,
       [
         "-X",
-        "utf8", // 🔥 FORCE UTF-8
+        "utf8",
         "-u",
         "-m",
         "whisper",
@@ -34,19 +35,19 @@ export const transcribeWithWhisper = (audioPath) =>
         "--output_dir",
         outputDir,
         "--verbose",
-        "False", // 🔥 PREVENT console Unicode spam
+        "False",
       ],
       {
         windowsHide: true,
         stdio: ["ignore", "pipe", "pipe"],
         env: {
           ...process.env,
-          PYTHONIOENCODING: "utf-8", // 🔥 DOUBLE SAFETY
+          PYTHONIOENCODING: "utf-8",
         },
       }
     );
 
-    // ⏱ Timeout safety
+    // ⏱ Timeout protection
     const timer = setTimeout(() => {
       console.error("⏰ Whisper timeout — killing process");
       whisper.kill("SIGKILL");
