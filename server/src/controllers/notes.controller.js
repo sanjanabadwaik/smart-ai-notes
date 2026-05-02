@@ -1,14 +1,11 @@
 import fs from "fs-extra";
 import mammoth from "mammoth";
 import { createRequire } from "module";
-
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import ApiError from "../utils/ApiError.js";
 import { downloadYoutubeAudio } from "../services/youtube.service.js";
 import { transcribeWithWhisper } from "../utils/whisper.js";
 import Note from "../models/Note.js";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+import { generateSummary } from "../services/aiSummarizer.service.js";
 
 export const extractTextFromDocument = async (file) => {
   if (!file) throw new Error("Document file required");
@@ -75,7 +72,13 @@ const extractJsonFromMarkdown = (markdown) => {
  */
 export const generateNotes = async (req, res, next) => {
   try {
-    const { sourceType, youtubeUrl, text, summaryType = "detailed" } = req.body;
+    const {
+      sourceType,
+      youtubeUrl,
+      text,
+      summaryType = "detailed",
+      language = "English",
+    } = req.body;
     let inputText = "";
 
     // TEXT
@@ -103,34 +106,17 @@ export const generateNotes = async (req, res, next) => {
       throw new ApiError(400, `Unsupported source type: ${sourceType}`);
     }
 
-    // GEMINI AI
-    const model = genAI.getGenerativeModel({
-      model: "models/gemini-flash-lite-latest",
+    const summary = await generateSummary({
+      text: inputText,
+      summaryType,
+      language,
     });
-
-    const prompt = `
-Create ${summaryType} lecture notes.
-Return JSON in this format only:
-
-{
-  "notes": "",
-  "keyPoints": [],
-  "highlights": []
-}
-
-Input:
-${inputText}
-`;
-
-    const result = await model.generateContent(prompt);
-    const rawText = result.response.text();
-    const parsed = extractJsonFromMarkdown(rawText);
 
     res.status(201).json({
       success: true,
-      content: parsed?.notes || rawText,
-      keyPoints: parsed?.keyPoints || [],
-      highlights: parsed?.highlights || [],
+      content: summary?.notes || "",
+      keyPoints: summary?.keyPoints || [],
+      highlights: summary?.highlights || [],
     });
   } catch (err) {
     next(err);
